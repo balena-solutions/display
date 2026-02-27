@@ -1,0 +1,42 @@
+version: '2.1'
+
+services:
+  weston:
+    build: ../src
+    privileged: true
+    restart: always
+    network_mode: host
+    pid: host
+    volumes:
+      - weston-socket:/run
+    environment:
+      - WESTON_DEBUG=true
+    devices:
+      - /dev/input:/dev/input
+      - /dev/uinput:/dev/uinput
+    labels:
+      io.balena.features.dbus: '1'
+  tests:
+    build: .
+    environment:
+    - XDG_RUNTIME_DIR=/run/user/0
+    volumes:
+      - weston-socket:/run
+      - tests-data:/data
+    # CRITICAL: The test container needs to see the GPU to verify acceleration
+    devices:
+      - /dev/dri:/dev/dri
+    # Ensure it launches after weston (though the script handles the wait)
+    depends_on:
+      - weston
+    privileged: true
+    ports:
+      - "8000"
+    # Ensure it doesn't restart continuously if you want to inspect it manually,
+    # though 'restart: always' is fine since webfsd runs forever.
+    # restart: unless-stopped
+    pid: host
+
+volumes:
+  weston-socket:
+  tests-data:

@@ -1,0 +1,26 @@
+version: '2.1'
+
+services:
+  display:
+    build: ./display
+    privileged: true
+    restart: always
+    network_mode: host
+    # pid: host
+    volumes:
+      - display-socket:/run
+    labels:
+      io.balena.features.dbus: '1'
+
+  touchscreen-demo:
+    build: ./
+    restart: always
+    volumes:
+      - display-socket:/run
+    depends_on:
+      - display
+    devices:
+      - /dev/dri:/dev/dri
+
+volumes:
+  display-socket:
