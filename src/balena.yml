@@ -1,0 +1,14 @@
+name: display
+type: sw.block
+version: 0.0.0
+description: "Hardware-accelerated Weston Wayland compositor block for balenaOS"
+assets:
+  repository:
+    type: blob.asset
+    data:
+      url: 'https://github.com/balena-solutions/display'
+data:
+  supportedDeviceTypes:
+    - 'raspberrypi4-64'
+    - 'raspberrypi5'
+    - 'generic-amd64'

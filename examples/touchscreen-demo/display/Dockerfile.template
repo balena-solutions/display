@@ -1,0 +1,2 @@
+FROM bh.cr/balena_solutions/display-%%BALENA_ARCH%%
+
