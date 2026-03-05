@@ -3,7 +3,7 @@ set -e
 
 ORG="${ORG:-balena_solutions}"
 BLOCK_NAME="${BLOCK_NAME:-display}"
-SRC_DIR="$(cd "$(dirname "$0")/src" && pwd)"
+SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 ARCH="${1:?Usage: $0 <arch> (aarch64|amd64) [--dry-run]}"
 DRY_RUN=false
