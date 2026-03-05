@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Display Test Suite{% endblock %}
+
+{% block content %}
+
+{# ── Toolbar ────────────────────────────────────────────────────────────── #}
+<div class="toolbar">
+  <h1>Dashboard</h1>
+  <span class="spacer"></span>
+  <form action="{{ url_for('run_all') }}" method="post">
+    <button type="submit" class="btn btn-danger">Run All Tests</button>
+  </form>
+</div>
+
+{# ── System Information ──────────────────────────────────────────────────── #}
+<section>
+  <h2>System Information</h2>
+
+  {% if system_info %}
+  <div class="sysinfo-grid">
+
+    <div class="sysinfo-card">
+      <div class="label">OS</div>
+      <div class="value">{{ system_info.os.pretty }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Kernel</div>
+      <div class="value">{{ system_info.kernel }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Device Model</div>
+      <div class="value">{{ system_info.device_model }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Device Type (Balena)</div>
+      <div class="value">{{ system_info.device_type }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Balena Host OS</div>
+      <div class="value">{{ system_info.balena_os }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">RAM (total / available)</div>
+      <div class="value">
+        {{ system_info.ram.total_mb }} MB /
+        {{ system_info.ram.available_mb }} MB
+      </div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Storage (total / free)</div>
+      <div class="value">
+        {{ system_info.storage.total_gb }} GB /
+        {{ system_info.storage.free_gb }} GB
+      </div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Display Output</div>
+      <div class="value">{{ system_info.display.output_name }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Resolution</div>
+      <div class="value">{{ system_info.display.resolution }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">OpenGL ES Version</div>
+      <div class="value">{{ system_info.opengl.version }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Vulkan API Version</div>
+      <div class="value">{{ system_info.vulkan.version }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Mesa Version</div>
+      <div class="value">{{ system_info.mesa_version }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">Weston Version</div>
+      <div class="value">{{ system_info.weston_version }}</div>
+    </div>
+
+    <div class="sysinfo-card">
+      <div class="label">GPU Kernel Modules</div>
+      <div class="value">{{ system_info.gpu_modules }}</div>
+    </div>
+
+  </div>
+
+  {# Raw diagnostic outputs #}
+  {% if system_info.display.raw %}
+  <details class="raw-details">
+    <summary>wayland-info (raw)</summary>
+    <pre>{{ system_info.display.raw }}</pre>
+  </details>
+  {% endif %}
+
+  {% if system_info.vulkan.raw %}
+  <details class="raw-details">
+    <summary>vulkaninfo --summary (raw)</summary>
+    <pre>{{ system_info.vulkan.raw }}</pre>
+  </details>
+  {% endif %}
+
+  {% if system_info.opengl.raw %}
+  <details class="raw-details">
+    <summary>es2_info / glmark2 --validate (raw)</summary>
+    <pre>{{ system_info.opengl.raw }}</pre>
+  </details>
+  {% endif %}
+
+  {% if system_info.video_decode.raw %}
+  <details class="raw-details">
+    <summary>vainfo / v4l2-ctl (raw)</summary>
+    <pre>{{ system_info.video_decode.raw }}</pre>
+  </details>
+  {% endif %}
+
+  {% else %}
+  <p>System info not yet collected. <a href="{{ url_for('index') }}">Refresh</a>.</p>
+  {% endif %}
+</section>
+
+{# ── Tests ───────────────────────────────────────────────────────────────── #}
+<section>
+  <h2>Tests</h2>
+
+  {% set groups = all_tests | map(attribute='group') | unique | list %}
+  {% for group in groups %}
+  <div class="test-group">
+    <h2>{{ group }}</h2>
+    <div class="test-cards">
+      {% for test in all_tests if test.group == group %}
+      {% set result = results.get(test.id) %}
+      {% set status = result.status if result else "pending" %}
+      <div class="test-card">
+        <div class="test-name">{{ test.name }}</div>
+
+        <div>
+          <span class="badge badge-{{ status }}">{{ status }}</span>
+        </div>
+
+        {% if result and result.extra %}
+          {% if result.extra.fps is defined %}
+          <div class="fps">
+            {{ result.extra.fps }} <span class="unit">FPS</span>
+          </div>
+          {% endif %}
+          {% if result.extra.decoder is defined %}
+          <div class="test-meta">Decoder: {{ result.extra.decoder }}</div>
+          {% endif %}
+        {% endif %}
+
+        <div class="actions">
+          <form action="{{ url_for('run_test', test_id=test.id) }}" method="post">
+            <button type="submit" class="btn btn-primary">Run</button>
+          </form>
+          {% if result %}
+          <a href="{{ url_for('test_detail', test_id=test.id) }}" class="btn btn-secondary">Details</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ test_def.name }} — Display Test Suite{% endblock %}
+
+{% block content %}
+
+<div class="detail-header">
+  <h1>{{ test_def.name }}</h1>
+  {% if result %}
+  <span class="badge badge-{{ result.status }}">{{ result.status }}</span>
+  {% else %}
+  <span class="badge badge-pending">pending</span>
+  {% endif %}
+</div>
+
+<p><a href="{{ url_for('index') }}">&larr; Back to Dashboard</a></p>
+
+{% if result %}
+
+{# Timestamps and group #}
+<div class="detail-meta">
+  <span>Group: <strong>{{ test_def.group }}</strong></span>
+  {% if result.started_at %}
+  <span>Started: {{ result.started_at }}</span>
+  {% endif %}
+  {% if result.finished_at %}
+  <span>Finished: {{ result.finished_at }}</span>
+  {% endif %}
+  {% if result.error_message %}
+  <span style="color: #721c24;">Error: {{ result.error_message }}</span>
+  {% endif %}
+</div>
+
+{# Extra metrics (FPS, decoder, etc.) #}
+{% if result.extra %}
+<section>
+  <h2>Result</h2>
+  <table class="extra-table">
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for key, value in result.extra.items() %}
+      <tr>
+        <td>{{ key | capitalize }}</td>
+        <td><strong>{{ value }}</strong></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{# Screenshot #}
+{% if result.screenshot_b64 %}
+<section>
+  <h2>Screenshot</h2>
+  <div class="screenshot-wrap">
+    <img src="data:image/png;base64,{{ result.screenshot_b64 }}" alt="Screenshot for {{ test_def.name }}">
+  </div>
+</section>
+{% endif %}
+
+{# Raw output #}
+<section>
+  <div class="raw-output-wrap">
+    <h2>Raw Output</h2>
+    {% if result.raw_output %}
+    <pre>{{ result.raw_output }}</pre>
+    {% else %}
+    <pre>(no output captured)</pre>
+    {% endif %}
+  </div>
+</section>
+
+{# Run again #}
+<section style="margin-top: 1rem;">
+  <form action="{{ url_for('run_test', test_id=test_def.id) }}" method="post">
+    <button type="submit" class="btn btn-primary">Run Again</button>
+  </form>
+</section>
+
+{% else %}
+<p>This test has not been run yet.</p>
+<form action="{{ url_for('run_test', test_id=test_def.id) }}" method="post">
+  <button type="submit" class="btn btn-primary">Run Now</button>
+</form>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,42 @@
+version: '2.1'
+
+services:
+  display:
+    build: ./display
+    privileged: true
+    restart: always
+    network_mode: host
+    pid: host
+    volumes:
+      - display-socket:/run
+    environment:
+      - WESTON_DEBUG=true
+    devices:
+      - /dev/input:/dev/input
+      - /dev/uinput:/dev/uinput
+    labels:
+      io.balena.features.dbus: '1'
+
+  tests:
+    build: .
+    restart: unless-stopped
+    privileged: true
+    pid: host
+    volumes:
+      - display-socket:/run
+      - tests-data:/data
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - XDG_RUNTIME_DIR=/run/user/0
+      - WAYLAND_DISPLAY=wayland-0
+      # Uncomment to run all tests automatically on startup (CI mode)
+      # - AUTO_RUN=1
+    ports:
+      - "8000:8000"
+    depends_on:
+      - display
+
+volumes:
+  display-socket:
+  tests-data:

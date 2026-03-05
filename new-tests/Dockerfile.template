@@ -1,0 +1,77 @@
+# Declared before FROM so it can be overridden with --build-arg locally.
+# On balena's builder, %%BALENA_MACHINE_NAME%% is substituted before Docker
+# processes the file. Must be re-declared after FROM to be in build scope.
+ARG BALENA_MACHINE_NAME=%%BALENA_MACHINE_NAME%%
+
+FROM debian:13.2-slim
+
+ARG BALENA_MACHINE_NAME
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Copy build scripts and RPi pinning file
+COPY build/ /usr/src/build/
+RUN chmod +x /usr/src/build/setup_rpi_repo.sh
+
+# Conditionally add RPi OS repo (only for Raspberry Pi devices).
+# The RPi OS repo provides a patched ffmpeg with --enable-v4l2-request,
+# required for HEVC hardware decode on Pi 4/5 via the stateless V4L2 API.
+RUN /usr/src/build/setup_rpi_repo.sh "${BALENA_MACHINE_NAME}"
+
+# Install dependencies
+# - kmod: for 'lsmod'
+# - weston: for 'weston-screenshooter'
+# - wayland-utils: for 'wayland-info'
+# - mesa-utils: for 'es2_info' (GL diagnostics)
+# - libgl1-mesa-dri: GPU drivers
+# - glmark2-es2-wayland: The benchmark suite
+# - vulkan-tools: for 'vulkaninfo'
+# - vkmark: Vulkan benchmark suite
+# - mesa-vulkan-drivers: Required for Vulkan execution
+# - mpv: Video player with hardware decode support
+# - procps: for reading /proc (memory info)
+# - util-linux: lscpu etc
+# - libdrm-tests: modetest utility
+# - libpango-1.0-0 libpangocairo-1.0-0 libcairo2: Required by WeasyPrint PDF export
+# - shared-mime-info: Required by WeasyPrint
+RUN apt-get update && apt-get install -y \
+    coreutils \
+    glmark2-es2-wayland \
+    kmod \
+    libcairo2 \
+    libdrm-tests \
+    libgl1-mesa-dri \
+    libinput-tools \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libvulkan1 \
+    mesa-utils \
+    mesa-vulkan-drivers \
+    mpv \
+    procps \
+    python3 \
+    python3-pip \
+    python3-venv \
+    shared-mime-info \
+    util-linux \
+    vkmark \
+    vulkan-tools \
+    wayland-utils \
+    weston \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/app
+
+# Install Python dependencies into a venv to avoid PEP 668 conflicts
+COPY requirements.txt .
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY . .
+
+EXPOSE 8000
+
+CMD ["python3", "run.py"]

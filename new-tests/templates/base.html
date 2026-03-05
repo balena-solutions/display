@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Display Test Suite{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav>
+    <span class="brand">Display Test Suite</span>
+    <a href="{{ url_for('index') }}">Dashboard</a>
+    <form action="{{ url_for('refresh_sysinfo') }}" method="post">
+      <button type="submit">Refresh System Info</button>
+    </form>
+    <a href="{{ url_for('export_pdf') }}" class="btn btn-primary">Export PDF</a>
+  </nav>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
