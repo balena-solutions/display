@@ -1,0 +1,14 @@
+- commits:
+    - subject: Add flowzone Enables automatic deploy to balenaCloud registry bh.cr
+      hash: 35faeae007e10b2f17b5dbb30ee252364db61768
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rahul Thakoor <rahul@balena.io>
+        signed-off-by: Rahul Thakoor <rahul@balena.io>
+      author: Rahul Thakoor
+      nested: []
+  version: 0.0.2
+  title: ""
+  date: 2026-03-05T10:59:59.674Z

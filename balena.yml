@@ -1,6 +1,6 @@
 name: display
 type: sw.block
-version: 0.0.0
+version: 0.0.2
 description: "Hardware-accelerated Weston Wayland compositor block for balenaOS"
 assets:
   repository:
