@@ -7,9 +7,10 @@ persistence mechanism for results across sessions.
 """
 
 import dataclasses
+import os
 import threading
 
-from flask import Flask, abort, jsonify, redirect, render_template, send_file, url_for
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_file, url_for
 
 import config
 import pdf_export
@@ -19,7 +20,10 @@ from tests import ALL_TESTS
 # In-memory state. Shared across all requests.
 run_store: dict = {
     "system_info": {},
-    "results": {},   # test_id → dataclasses.asdict(TestResult)
+    "results": {},      # test_id → dataclasses.asdict(TestResult)
+    "settings": {
+        "duration": config.TEST_DURATION,
+    },
 }
 
 # Prevents two tests from running at the same time.
@@ -40,6 +44,7 @@ def create_app() -> Flask:
             system_info=run_store["system_info"],
             all_tests=ALL_TESTS,
             results=run_store["results"],
+            settings=run_store["settings"],
         )
 
     @app.route("/run/<test_id>", methods=["POST"])
@@ -87,10 +92,26 @@ def create_app() -> Flask:
 
         return redirect(url_for("index"))
 
+    @app.route("/settings", methods=["POST"])
+    def update_settings():
+        try:
+            duration = int(request.form.get("duration", config.TEST_DURATION))
+        except (ValueError, TypeError):
+            duration = config.TEST_DURATION
+
+        # Clamp to a sensible range so tests don't run for an absurd amount of time.
+        duration = max(5, min(120, duration))
+
+        run_store["settings"]["duration"] = duration
+        config.TEST_DURATION = duration
+        config.SCREENSHOT_DELAY = duration // 2
+
+        return redirect(url_for("index"))
+
     @app.route("/export-pdf")
     def export_pdf():
         pdf_path = pdf_export.export(run_store)
-        return send_file(pdf_path, as_attachment=True, download_name="test-report.pdf")
+        return send_file(pdf_path, as_attachment=True, download_name=os.path.basename(pdf_path))
 
     @app.route("/refresh-sysinfo", methods=["POST"])
     def refresh_sysinfo():

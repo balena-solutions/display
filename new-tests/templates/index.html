@@ -11,11 +11,23 @@
   <form action="{{ url_for('run_all') }}" method="post">
     <button type="submit" class="btn btn-danger">Run All Tests</button>
   </form>
+  <form action="{{ url_for('update_settings') }}" method="post" class="inline-form">
+    <label class="duration-label">Duration</label>
+    <input class="duration-input" type="number" name="duration"
+           value="{{ settings.duration }}" min="5" max="120">
+    <span class="duration-unit">s</span>
+    <button type="submit" class="btn btn-secondary">Apply</button>
+  </form>
 </div>
 
-{# ── System Information ──────────────────────────────────────────────────── #}
-<section>
-  <h2>System Information</h2>
+{# ── System Information (collapsed by default) ───────────────────────────── #}
+<details class="sysinfo-details">
+  <summary>
+    System Information
+    {% if system_info %}
+    — {{ system_info.device_model }}, {{ system_info.os.pretty }}
+    {% endif %}
+  </summary>
 
   {% if system_info %}
   <div class="sysinfo-grid">
@@ -46,18 +58,18 @@
     </div>
 
     <div class="sysinfo-card">
-      <div class="label">RAM (total / available)</div>
+      <div class="label">RAM (used / total)</div>
       <div class="value">
-        {{ system_info.ram.total_mb }} MB /
-        {{ system_info.ram.available_mb }} MB
+        {{ system_info.ram.used_mb }} MB /
+        {{ system_info.ram.total_mb }} MB
       </div>
     </div>
 
     <div class="sysinfo-card">
-      <div class="label">Storage (total / free)</div>
+      <div class="label">Storage (used / total)</div>
       <div class="value">
-        {{ system_info.storage.total_gb }} GB /
-        {{ system_info.storage.free_gb }} GB
+        {{ system_info.storage.used_gb }} GB /
+        {{ system_info.storage.total_gb }} GB
       </div>
     </div>
 
@@ -128,9 +140,9 @@
   {% endif %}
 
   {% else %}
-  <p>System info not yet collected. <a href="{{ url_for('index') }}">Refresh</a>.</p>
+  <p style="padding: 0.75rem 0;">System info not yet collected. <a href="{{ url_for('index') }}">Refresh</a>.</p>
   {% endif %}
-</section>
+</details>
 
 {# ── Tests ───────────────────────────────────────────────────────────────── #}
 <section>
@@ -151,15 +163,8 @@
           <span class="badge badge-{{ status }}">{{ status }}</span>
         </div>
 
-        {% if result and result.extra %}
-          {% if result.extra.fps is defined %}
-          <div class="fps">
-            {{ result.extra.fps }} <span class="unit">FPS</span>
-          </div>
-          {% endif %}
-          {% if result.extra.decoder is defined %}
-          <div class="test-meta">Decoder: {{ result.extra.decoder }}</div>
-          {% endif %}
+        {% if result and result.extra.sw_warning is defined %}
+        <div class="sw-warning">⚠ {{ result.extra.sw_warning }}</div>
         {% endif %}
 
         <div class="actions">

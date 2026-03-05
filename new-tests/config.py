@@ -22,17 +22,15 @@ SCREENSHOT_DIR = "/tmp/screenshots"
 # Tests use this for --size arguments.
 SCREEN_RES = os.environ.get("SCREEN_RES", "1280x720")
 
-# Benchmark durations (seconds)
-GLMARK_DURATION = 6.0
-VKMARK_DURATION = 6.0
+# Test duration (seconds). Applies to all benchmark and video tests.
+# Can be overridden at runtime via the web UI or the TEST_DURATION env var.
+TEST_DURATION = int(os.environ.get("TEST_DURATION", 10))
 
-# Screenshot timing (seconds after benchmark starts before capturing)
-GLMARK_SCREENSHOT_DELAY = 3
-VKMARK_SCREENSHOT_DELAY = 3
-MPV_SCREENSHOT_DELAY = 8     # seconds into playback before screenshot
-MPV_PLAY_DURATION = 20       # total seconds to run mpv before killing it
+# Screenshot is always taken at the halfway point of the test duration.
+# Recomputed whenever TEST_DURATION is updated via the /settings route.
+SCREENSHOT_DELAY = TEST_DURATION // 2
 
-# Subprocess timeouts for diagnostic tools (seconds)
+# Subprocess timeout for diagnostic tools (seconds)
 TOOL_TIMEOUT = 15
 
 # Auto-run mode: run all tests on startup and export PDF, then exit.

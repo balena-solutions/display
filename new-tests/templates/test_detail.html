@@ -11,6 +11,9 @@
   {% else %}
   <span class="badge badge-pending">pending</span>
   {% endif %}
+  {% if result and result.extra.sw_warning is defined %}
+  <div class="sw-warning">⚠ {{ result.extra.sw_warning }}</div>
+  {% endif %}
 </div>
 
 <p><a href="{{ url_for('index') }}">&larr; Back to Dashboard</a></p>
@@ -30,29 +33,6 @@
   <span style="color: #721c24;">Error: {{ result.error_message }}</span>
   {% endif %}
 </div>
-
-{# Extra metrics (FPS, decoder, etc.) #}
-{% if result.extra %}
-<section>
-  <h2>Result</h2>
-  <table class="extra-table">
-    <thead>
-      <tr>
-        <th>Metric</th>
-        <th>Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for key, value in result.extra.items() %}
-      <tr>
-        <td>{{ key | capitalize }}</td>
-        <td><strong>{{ value }}</strong></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</section>
-{% endif %}
 
 {# Screenshot #}
 {% if result.screenshot_b64 %}

@@ -243,6 +243,64 @@ form .btn { display: inline-block; }
     word-break: break-all;
 }
 
+/* ── Software renderer warning pill ─────────────────────────────────────── */
+.sw-warning {
+    display: inline-block;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+    border-radius: 10px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* ── System info collapsible section ─────────────────────────────────────── */
+.sysinfo-details {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0 1rem;
+    margin-bottom: 1.5rem;
+}
+.sysinfo-details > summary {
+    padding: 0.75rem 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #333;
+    user-select: none;
+    list-style: disclosure-closed;
+}
+.sysinfo-details[open] > summary {
+    border-bottom: 1px solid #eee;
+    margin-bottom: 0.75rem;
+    list-style: disclosure-open;
+}
+.sysinfo-details .sysinfo-grid { margin-top: 0.75rem; }
+.sysinfo-details .raw-details { margin-bottom: 0.75rem; }
+
+/* ── Duration form in toolbar ────────────────────────────────────────────── */
+.inline-form {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.duration-label {
+    font-size: 0.85rem;
+    color: #555;
+    white-space: nowrap;
+}
+.duration-input {
+    width: 5rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    text-align: right;
+}
+.duration-unit { font-size: 0.85rem; color: #777; }
+
 /* ── Run All progress bar placeholder ───────────────────────────────────── */
 .toolbar {
     display: flex;

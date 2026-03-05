@@ -1,15 +1,13 @@
 """
 OpenGL ES benchmark tests using glmark2-es2-wayland.
 
-Each test runs one glmark2 scene for a fixed duration, captures a screenshot
-mid-run, and returns the full raw output for display in the UI.
+Each test runs one glmark2 scene for a configurable duration (config.TEST_DURATION),
+captures a screenshot at the halfway point, and returns the full raw output for
+display in the UI. No FPS parsing is performed — status is based on exit code only.
 
-FPS parsing is opportunistic: if the 'Score:' line is present and parseable,
-the score is stored in extra["fps"]. A failed parse does not affect the
-test status — the raw output is always available.
+GALLIUM_HUD="fps,cpu" is set so the HUD overlay appears in screenshots.
 """
 
-import dataclasses
 import os
 import subprocess
 import time
@@ -51,13 +49,13 @@ def _run_glmark_scene(test_id: str, test_name: str, scene_params: str) -> TestRe
     cmd = [
         "glmark2-es2-wayland",
         "--size", config.SCREEN_RES,
-        "--benchmark", f"{scene_params}:duration={config.GLMARK_DURATION}",
+        "--benchmark", f"{scene_params}:duration={config.TEST_DURATION}",
         "--fullscreen",
         "--swap-mode=fifo",
     ]
     env = {
         **os.environ,
-        "GALLIUM_HUD": "fps",
+        "GALLIUM_HUD": "fps,cpu",
         "WAYLAND_DISPLAY": config.WAYLAND_DISPLAY,
         "XDG_RUNTIME_DIR": config.XDG_RUNTIME_DIR,
     }
@@ -84,18 +82,20 @@ def _run_glmark_scene(test_id: str, test_name: str, scene_params: str) -> TestRe
             error_message="Tool not installed.",
         )
 
-    time.sleep(config.GLMARK_SCREENSHOT_DELAY)
+    time.sleep(config.SCREENSHOT_DELAY)
     screenshot_b64 = capture_screenshot()
 
     raw_output, _ = proc.communicate()
     finished_at = datetime.now(timezone.utc).isoformat()
 
-    extra = _parse_fps(raw_output)
+    # Status is based purely on the tool's exit code, not on parsed output.
+    status = "pass" if proc.returncode == 0 else "fail"
 
-    if proc.returncode == 0:
-        status = "pass"
-    else:
-        status = "fail"
+    # Software renderer check — informational only, does not affect status.
+    extra = {}
+    warning = _check_software_renderer(raw_output)
+    if warning:
+        extra["sw_warning"] = warning
 
     return TestResult(
         test_id=test_id,
@@ -111,16 +111,13 @@ def _run_glmark_scene(test_id: str, test_name: str, scene_params: str) -> TestRe
     )
 
 
-def _parse_fps(output: str) -> dict:
+def _check_software_renderer(output: str) -> str | None:
     """
-    Try to extract the glmark2 composite score from output.
-    Returns {"fps": <int>} if found, otherwise {}.
+    Return a warning string if a known software renderer name is found in the output.
+    Used to alert the user that hardware acceleration may not be active.
+    Does not affect the test status.
     """
-    for line in reversed(output.splitlines()):
-        if "Score:" in line:
-            parts = line.split("Score:")
-            if len(parts) == 2:
-                score_str = parts[1].strip().split()[0] if parts[1].strip() else ""
-                if score_str.isdigit():
-                    return {"fps": int(score_str)}
-    return {}
+    for name in ("llvmpipe", "softpipe", "lavapipe"):
+        if name in output:
+            return f"Software renderer detected ({name})"
+    return None

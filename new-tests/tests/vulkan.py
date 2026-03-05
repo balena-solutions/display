@@ -2,12 +2,12 @@
 Vulkan benchmark tests using vkmark.
 
 Follows the same structure as gles.py: one scene per test function,
-screenshot mid-run, full raw output returned for display in the UI.
+screenshot at the halfway point, full raw output returned for display in the UI.
+Status is based on exit code only — no FPS parsing.
 
 Skipped gracefully if vkmark is not installed.
 """
 
-import dataclasses
 import os
 import subprocess
 import time
@@ -50,7 +50,7 @@ def _run_vkmark_scene(test_id: str, test_name: str, scene_params: str) -> TestRe
         "vkmark",
         "--present-mode=fifo",
         "--size", config.SCREEN_RES,
-        "--benchmark", f"{scene_params}:duration={config.VKMARK_DURATION}",
+        "--benchmark", f"{scene_params}:duration={config.TEST_DURATION}",
     ]
     env = {
         **os.environ,
@@ -82,18 +82,20 @@ def _run_vkmark_scene(test_id: str, test_name: str, scene_params: str) -> TestRe
             error_message="Tool not installed.",
         )
 
-    time.sleep(config.VKMARK_SCREENSHOT_DELAY)
+    time.sleep(config.SCREENSHOT_DELAY)
     screenshot_b64 = capture_screenshot()
 
     raw_output, _ = proc.communicate()
     finished_at = datetime.now(timezone.utc).isoformat()
 
-    extra = _parse_fps(raw_output)
+    # Status is based purely on the tool's exit code, not on parsed output.
+    status = "pass" if proc.returncode == 0 else "fail"
 
-    if proc.returncode == 0:
-        status = "pass"
-    else:
-        status = "fail"
+    # Software renderer check — informational only, does not affect status.
+    extra = {}
+    warning = _check_software_renderer(raw_output)
+    if warning:
+        extra["sw_warning"] = warning
 
     return TestResult(
         test_id=test_id,
@@ -109,19 +111,13 @@ def _run_vkmark_scene(test_id: str, test_name: str, scene_params: str) -> TestRe
     )
 
 
-def _parse_fps(output: str) -> dict:
+def _check_software_renderer(output: str) -> str | None:
     """
-    Try to extract an FPS value from vkmark output.
-    vkmark may output 'FPS: 123' or 'Score: 123'.
-    Returns {"fps": <int>} if found, otherwise {}.
+    Return a warning string if a known software renderer name is found in the output.
+    Used to alert the user that hardware acceleration may not be active.
+    Does not affect the test status.
     """
-    import re
-    # Try 'FPS: 123' first
-    m = re.search(r"FPS:\s*(\d+)", output)
-    if m:
-        return {"fps": int(m.group(1))}
-    # Fall back to 'Score: 123'
-    m = re.search(r"Score:\s*(\d+)", output)
-    if m:
-        return {"fps": int(m.group(1))}
-    return {}
+    for name in ("llvmpipe", "softpipe", "lavapipe"):
+        if name in output:
+            return f"Software renderer detected ({name})"
+    return None

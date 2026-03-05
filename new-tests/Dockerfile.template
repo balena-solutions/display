@@ -30,6 +30,8 @@ RUN /usr/src/build/setup_rpi_repo.sh "${BALENA_MACHINE_NAME}"
 # - vkmark: Vulkan benchmark suite
 # - mesa-vulkan-drivers: Required for Vulkan execution
 # - mpv: Video player with hardware decode support
+# - vainfo: VA-API hardware decode info (Debian package name; 'libva-utils' in Ubuntu)
+# - v4l-utils: for 'v4l2-ctl' (V4L2 hardware decode info, e.g. Raspberry Pi)
 # - procps: for reading /proc (memory info)
 # - util-linux: lscpu etc
 # - libdrm-tests: modetest utility
@@ -45,6 +47,7 @@ RUN apt-get update && apt-get install -y \
     libinput-tools \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
+    vainfo \
     libvulkan1 \
     mesa-utils \
     mesa-vulkan-drivers \
@@ -55,6 +58,7 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     shared-mime-info \
     util-linux \
+    v4l-utils \
     vkmark \
     vulkan-tools \
     wayland-utils \

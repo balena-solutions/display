@@ -66,8 +66,17 @@
     .test-block-header .test-name { font-weight: 600; }
     .test-block-body { padding: 0.75rem; }
 
-    .extras { font-size: 0.85rem; color: #333; margin-bottom: 0.5rem; }
-    .extras span { margin-right: 1rem; }
+    .sw-warning-print {
+      display: inline-block;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+      border-radius: 10px;
+      padding: 0.1rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
 
     .screenshot { max-width: 100%; border: 1px solid #eee; display: block; margin-bottom: 0.5rem; }
 
@@ -107,10 +116,10 @@
   <tr><th>Device Model</th><td>{{ system_info.device_model }}</td></tr>
   <tr><th>Device Type (Balena)</th><td>{{ system_info.device_type }}</td></tr>
   <tr><th>Balena Host OS</th><td>{{ system_info.balena_os }}</td></tr>
-  <tr><th>RAM (total / available)</th>
-      <td>{{ system_info.ram.total_mb }} MB / {{ system_info.ram.available_mb }} MB</td></tr>
-  <tr><th>Storage (total / free)</th>
-      <td>{{ system_info.storage.total_gb }} GB / {{ system_info.storage.free_gb }} GB</td></tr>
+  <tr><th>RAM (used / total)</th>
+      <td>{{ system_info.ram.used_mb }} MB / {{ system_info.ram.total_mb }} MB</td></tr>
+  <tr><th>Storage (used / total)</th>
+      <td>{{ system_info.storage.used_gb }} GB / {{ system_info.storage.total_gb }} GB</td></tr>
   <tr><th>Display Output</th><td>{{ system_info.display.output_name }}</td></tr>
   <tr><th>Resolution</th><td>{{ system_info.display.resolution }}</td></tr>
   <tr><th>OpenGL ES Version</th><td>{{ system_info.opengl.version }}</td></tr>
@@ -145,15 +154,8 @@
   {% if result %}
   <div class="test-block-body">
 
-    {% if result.extra %}
-    <div class="extras">
-      {% if result.extra.fps is defined %}
-      <span><strong>FPS:</strong> {{ result.extra.fps }}</span>
-      {% endif %}
-      {% if result.extra.decoder is defined %}
-      <span><strong>Decoder:</strong> {{ result.extra.decoder }}</span>
-      {% endif %}
-    </div>
+    {% if result.extra.sw_warning is defined %}
+    <div class="sw-warning-print">⚠ {{ result.extra.sw_warning }}</div>
     {% endif %}
 
     {% if result.screenshot_b64 %}

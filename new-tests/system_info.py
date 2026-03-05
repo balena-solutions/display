@@ -94,12 +94,15 @@ def _get_ram() -> dict:
                 if len(parts) >= 2:
                     mem[parts[0].rstrip(":")] = int(parts[1])
     except OSError:
-        return {"total_mb": None, "free_mb": None, "available_mb": None}
+        return {"total_mb": None, "free_mb": None, "available_mb": None, "used_mb": None}
 
+    total     = mem.get("MemTotal", 0) // 1024
+    available = mem.get("MemAvailable", 0) // 1024
     return {
-        "total_mb":     mem.get("MemTotal", 0) // 1024,
+        "total_mb":     total,
         "free_mb":      mem.get("MemFree", 0) // 1024,
-        "available_mb": mem.get("MemAvailable", 0) // 1024,
+        "available_mb": available,
+        "used_mb":      total - available,
     }
 
 
@@ -166,9 +169,14 @@ def _get_opengl_info() -> dict:
 
     version = "Unknown"
     if raw:
-        m = re.search(r"GL_VERSION[:\s]+(.+)", raw)
-        if m:
-            version = m.group(1).strip()
+        # If the tool ran but couldn't open a display, give a clear version label
+        # rather than "Unknown". The raw output (with the error) is still stored.
+        if "couldn't open display" in raw or "unable to open display" in raw.lower():
+            version = "N/A (no display at collection time)"
+        else:
+            m = re.search(r"GL_VERSION[:\s]+(.+)", raw)
+            if m:
+                version = m.group(1).strip()
 
     return {"version": version, "raw": raw or "es2_info not available"}
 
