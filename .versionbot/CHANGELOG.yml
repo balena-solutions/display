@@ -1,4 +1,18 @@
 - commits:
+    - subject: Add post-provisioning instructions to balena.yml
+      hash: 13d93dcd15873664d39128fb7e09793778d60800
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rahul Thakoor <rahul@balena.io>
+        signed-off-by: Rahul Thakoor <rahul@balena.io>
+      author: Rahul Thakoor
+      nested: []
+  version: 0.0.3
+  title: ""
+  date: 2026-03-11T11:08:03.519Z
+- commits:
     - subject: Add flowzone Enables automatic deploy to balenaCloud registry bh.cr
       hash: 35faeae007e10b2f17b5dbb30ee252364db61768
       body: ""
