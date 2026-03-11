@@ -1,17 +1,16 @@
 name: display
 type: sw.block
-version: 0.0.3
+version: 0.0.4
 description: "Hardware-accelerated Weston Wayland compositor block for balenaOS"
 post-provisioning: >-
   ## How to Use This Block
 
   ### Option 1 — Direct image in docker-compose.yml
 
-  Reference the architecture-specific image directly. Best when your fleet targets a single known architecture (e.g. aarch64 for Raspberry Pi 4/5):
+  Reference the architecture-specific image directly. Best when your fleet
+  targets a single known architecture (e.g. aarch64 for Raspberry Pi 4/5):
 
-  ```
-  version: '2.1'
-  services:
+  ``` version: '2.1' services:
     display:
       image: bh.cr/balena_solutions/display-aarch64
       privileged: true
@@ -39,19 +38,17 @@ post-provisioning: >-
 
   ### Option 2 — Dockerfile.template
 
-  Use a Dockerfile.template so balena substitutes the correct architecture at build time. Best for when you deploy your app to fleets of different architectures (e.g aarch64 and amd64):
+  Use a Dockerfile.template so balena substitutes the correct architecture at
+  build time. Best for when you deploy your app to fleets of different
+  architectures (e.g aarch64 and amd64):
 
   **./display/Dockerfile.template**
 
-  ```
-  FROM bh.cr/balena_solutions/display-%%BALENA_ARCH%%
-  ```
+  ``` FROM bh.cr/balena_solutions/display-%%BALENA_ARCH%% ```
 
   **docker-compose.yml**
 
-  ```
-  version: '2.1'
-  services:
+  ``` version: '2.1' services:
     display:
       build: ./display
       privileged: true
@@ -79,13 +76,11 @@ post-provisioning: >-
 
   In your app's entry script, wait for the socket before launching:
 
-  ```
-  SOCKET="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
-  while [ ! -e "$SOCKET" ]; do sleep 1; done
-  exec your-app
-  ```
+  ``` SOCKET="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" while [ ! -e "$SOCKET" ]; do
+  sleep 1; done exec your-app ```
 
-  For more examples, see https://github.com/balena-solutions/display/tree/main/examples
+  For more examples, see
+  https://github.com/balena-solutions/display/tree/main/examples
 assets:
   repository:
     type: blob.asset

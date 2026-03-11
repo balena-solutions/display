@@ -1,4 +1,18 @@
 - commits:
+    - subject: Fix balena.yml/hub instructions formatting
+      hash: ba3b4dc0992603984c4a8b7c2ebe9a9097312580
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rahul Thakoor <rahul@balena.io>
+        signed-off-by: Rahul Thakoor <rahul@balena.io>
+      author: Rahul Thakoor
+      nested: []
+  version: 0.0.4
+  title: ""
+  date: 2026-03-11T12:08:02.934Z
+- commits:
     - subject: Add post-provisioning instructions to balena.yml
       hash: 13d93dcd15873664d39128fb7e09793778d60800
       body: ""
