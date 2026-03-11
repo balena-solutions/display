@@ -5,13 +5,12 @@ description: "Hardware-accelerated Weston Wayland compositor block for balenaOS"
 post-provisioning: >-
   ## How to Use This Block
 
-  ### Option 1 — Direct image in `docker-compose.yml`
+  ### Option 1 — Direct image in docker-compose.yml
 
-  Reference the architecture-specific image directly. Best when your fleet
-  targets a single known architecture (e.g. `aarch64` for Raspberry Pi 4/5):
+  Reference the architecture-specific image directly. Best when your fleet targets a single known architecture (e.g. aarch64 for Raspberry Pi 4/5):
 
-  ```yaml version: '2.1'
-
+  ```
+  version: '2.1'
   services:
     display:
       image: bh.cr/balena_solutions/display-aarch64
@@ -22,7 +21,6 @@ post-provisioning: >-
         - display-socket:/run
       labels:
         io.balena.features.dbus: '1'
-
     your-app:
       build: ./your-app
       restart: always
@@ -35,22 +33,24 @@ post-provisioning: >-
       environment:
         - WAYLAND_DISPLAY=wayland-0
         - XDG_RUNTIME_DIR=/run/user/0
-
   volumes:
     display-socket:
   ```
 
-  ### Option 2 — `Dockerfile.template` (multi-arch)
+  ### Option 2 — Dockerfile.template
 
-  Use a `Dockerfile.template` so balena substitutes the correct architecture at
-  build time. Best for fleets spanning multiple architectures (e.g. `aarch64`
-  and `amd64`):
+  Use a Dockerfile.template so balena substitutes the correct architecture at build time. Best for when you deploy your app to fleets of different architectures (e.g aarch64 and amd64):
 
-  **`./display/Dockerfile.template`** ```dockerfile FROM
-  bh.cr/balena_solutions/display-%%BALENA_ARCH%% ```
+  **./display/Dockerfile.template**
 
-  **`docker-compose.yml`** ```yaml version: '2.1'
+  ```
+  FROM bh.cr/balena_solutions/display-%%BALENA_ARCH%%
+  ```
 
+  **docker-compose.yml**
+
+  ```
+  version: '2.1'
   services:
     display:
       build: ./display
@@ -61,7 +61,6 @@ post-provisioning: >-
         - display-socket:/run
       labels:
         io.balena.features.dbus: '1'
-
     your-app:
       build: ./your-app
       restart: always
@@ -74,17 +73,19 @@ post-provisioning: >-
       environment:
         - WAYLAND_DISPLAY=wayland-0
         - XDG_RUNTIME_DIR=/run/user/0
-
   volumes:
     display-socket:
   ```
 
-  In your app's entry script, wait for the socket before launching: ```bash
-  SOCKET="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" while [ ! -e "$SOCKET" ]; do sleep
-  1; done exec your-app ```
+  In your app's entry script, wait for the socket before launching:
 
-  For more examples, see
-  https://github.com/balena-solutions/display/tree/main/examples
+  ```
+  SOCKET="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
+  while [ ! -e "$SOCKET" ]; do sleep 1; done
+  exec your-app
+  ```
+
+  For more examples, see https://github.com/balena-solutions/display/tree/main/examples
 assets:
   repository:
     type: blob.asset
