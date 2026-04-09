@@ -1,0 +1,12 @@
+FROM bh.cr/balena_solutions/display-%%BALENA_ARCH%%
+
+# Fonts are required for Weston's desktop-shell to render window title bars
+# and the panel clock. Without them, decorations appear but show no text.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY entry.sh /usr/src/multiscreen-entry.sh
+RUN chmod +x /usr/src/multiscreen-entry.sh
+
+CMD ["/bin/bash", "/usr/src/multiscreen-entry.sh"]

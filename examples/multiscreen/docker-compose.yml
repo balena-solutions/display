@@ -1,0 +1,54 @@
+version: '2.1'
+
+services:
+  display:
+    build: ./display
+    privileged: true
+    restart: always
+    network_mode: host
+    environment:
+      - MULTISCREEN_ENABLED=1
+      - PRIMARY_MODE=current
+      - SECONDARY_MODE=1920x1080
+
+      # Renderer: gl | pixman
+      # On Raspberry Pi with multiscreen, defaults to pixman automatically to
+      # avoid a known DRM cursor plane crash. Set to 'gl' to force hardware
+      # rendering. See: https://github.com/agherzan/meta-raspberrypi/issues/1407
+      # - WESTON_RENDERER=gl
+
+      # Per-display rotation: normal | rotate-90 | rotate-180 | rotate-270
+      # Env var name is ROTATION_ + output name uppercased with hyphens as underscores.
+      # - ROTATION_DSI_1=normal
+      # - ROTATION_HDMI_A_1=normal
+
+      # Explicit output assignment (auto-detected if unset).
+      # The first and second connected outputs are used as primary and secondary
+      # by default. Override here to pin specific connectors to each role.
+      # - PRIMARY_DISPLAY=DSI-1
+      # - SECONDARY_DISPLAY=HDMI-A-1
+    volumes:
+      - display-socket:/run
+    labels:
+      io.balena.features.dbus: '1'
+
+  apps:
+    build: ./apps
+    restart: always
+    depends_on:
+      - display
+    environment:
+      # weston-simple-egl  — hardware-accelerated EGL spinning shape
+      # weston-simple-shm  — animated colored rectangle, CPU-rendered
+      # weston-flower      — animated rotating flower, CPU-rendered
+      # weston-terminal    — interactive terminal (has title bar + CSD decorations)
+      # Note: weston-simple-* have no title bar;
+      - APP1=weston-simple-egl
+      - APP2=weston-simple-shm
+    volumes:
+      - display-socket:/run
+    devices:
+      - /dev/dri:/dev/dri
+
+volumes:
+  display-socket:
