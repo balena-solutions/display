@@ -6,7 +6,6 @@ services:
     privileged: true
     restart: always
     network_mode: host
-    # pid: host
     volumes:
       - display-socket:/run
     labels:
