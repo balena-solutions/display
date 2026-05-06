@@ -1,4 +1,18 @@
 - commits:
+    - subject: "remove unnecessary pid: host from docker-compose"
+      hash: 5242f2c130f859c2973421eda3f04dc2a3321a4b
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Rahul Thakoor <rahul@balena.io>
+        signed-off-by: Rahul Thakoor <rahul@balena.io>
+      author: Rahul Thakoor
+      nested: []
+  version: 0.0.5
+  title: ""
+  date: 2026-05-06T14:42:41.069Z
+- commits:
     - subject: Fix balena.yml/hub instructions formatting
       hash: ba3b4dc0992603984c4a8b7c2ebe9a9097312580
       body: ""
