@@ -1,0 +1,3 @@
+[shell]
+locking=${WESTON_INI_SHELL_LOCKING}
+panel-position=${WESTON_INI_SHELL_PANEL_POSITION}

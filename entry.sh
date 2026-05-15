@@ -1,10 +1,16 @@
 #!/bin/bash
 set -e
+
+# ==============================================================================
+# ENVIRONMENT VARIABLES & DEFAULTS
+# ==============================================================================
 # Define the Runtime Directory
-# Wayland requires this directory to communicate via sockets.
-export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-"/run/user/0"}
-SOCKET_NAME=${SOCKET_NAME:-"wayland-0"}
-WESTON_DEBUG=${WESTON_DEBUG:-"false"}  # Default: Disabled
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/0}"
+SOCKET_NAME="${SOCKET_NAME:-wayland-0}"
+WESTON_DEBUG="${WESTON_DEBUG:-false}"
+
+# Load Weston configuration defaults from weston-env-defaults.sh
+source /etc/weston/weston-env-defaults.sh
 
 # ==============================================================================
 # STOP PLYMOUTH (Release DRM Master)
@@ -36,7 +42,7 @@ cleanup () {
 cleanup
 
 # ==============================================================================
-#  UDEV 
+# UDEV 
 # ==============================================================================
 setup_devtmpfs() {
 	newdev=/tmp/dev
@@ -50,7 +56,6 @@ setup_devtmpfs() {
 	mount --move "$newdev" /dev
 	ln -sf /dev/pts/ptmx /dev/ptmx
 }
-
 setup_devtmpfs
 
 unshare --net /lib/systemd/systemd-udevd --daemon
@@ -58,20 +63,46 @@ udevadm control --reload-rules
 udevadm trigger 
 udevadm settle
 
-
 # Set up the directory structure and permissions
-# It must be owned by the user (root in this case) and have 0700 permissions.
 echo "Setting up XDG_RUNTIME_DIR at $XDG_RUNTIME_DIR..."
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 0700 "$XDG_RUNTIME_DIR"
-ARGS="--idle-time=0 --socket=$SOCKET_NAME"
+
+# ==============================================================================
+# weson configuration
+# ==============================================================================
+if [ -n "$WESTON_INI_PATH" ] && [ -f "$WESTON_INI_PATH" ]; then
+    echo "INFO: WESTON_INI_PATH is set. Bypassing dynamic template generation."
+    echo "INFO: Using static configuration file at: $WESTON_INI_PATH"
+    
+    CONFIG_FILE="$WESTON_INI_PATH"
+else
+    echo "INFO: Generating dynamic weston.ini from template fragments..."
+    
+    # Target configuration file
+    CONFIG_DIR="${XDG_CONFIG_HOME:-$XDG_RUNTIME_DIR}/weston"
+    mkdir -p "$CONFIG_DIR"
+    CONFIG_FILE="$CONFIG_DIR/weston.ini"
+
+    # Substitute env vars in .ini.template files via envsubst.
+    # We iterate explicitly to ensure a trailing newline separates each fragment,
+    # preventing syntax errors if a template file lacks an EOF newline.
+    for template in /etc/weston/templates/*.ini.template; do
+        cat "$template"
+        echo ""
+    done | envsubst > "$CONFIG_FILE"
+fi
+
+# ==============================================================================
+# LAUNCH WESTON
+# ==============================================================================
+ARGS="--socket=$SOCKET_NAME --config=$CONFIG_FILE"
 
 # Conditionally enable Debug Mode and Export Version
 if [ "$WESTON_DEBUG" == "true" ]; then
-    echo "[INFO] Enabling Weston Debug Mode (Screenshooter authorized)"
+    echo "[INFO] Enabling Weston Debug Mode"
     ARGS="$ARGS --debug"
 
-    # Export version ONLY if debug is on
     echo "Exporting Weston version to shared volume..."
     weston --version > "$XDG_RUNTIME_DIR/weston_version.txt" 2>&1
 fi
@@ -79,6 +110,4 @@ fi
 echo "--- LAUNCHING WESTON ---"
 echo "Command: exec weston $ARGS"
 
-# Replace shell with Weston process
 exec weston $ARGS
-

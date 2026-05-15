@@ -1,0 +1,4 @@
+[core]
+shell=${WESTON_INI_CORE_SHELL}
+idle-time=${WESTON_INI_CORE_IDLE_TIME}
+require-input=${WESTON_INI_CORE_REQUIRE_INPUT}
