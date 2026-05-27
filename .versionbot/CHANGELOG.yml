@@ -1,4 +1,47 @@
 - commits:
+    - subject: Implement dynamic configuration via fragment-based templating
+      hash: 5db49088059f5fad02b17f223bf5d2974a9565e8
+      body: >
+        Migrate from a static `weston.ini` configuration to a flexible,
+
+        fragment-based templating architecture using envsubst at container
+
+        startup. This allows external configuration of Weston core and shell
+
+        parameters via environment variables without requiring custom image
+
+        rebuilds, facilitating the transition to a thin-client Wayland
+
+        sidecar architecture.
+
+
+        - Add configuration default fallbacks via weston-env-defaults.sh.
+
+        - Split baseline settings into ordered templates under
+        /etc/weston/templates/
+          (01-core.ini.template, 02-shell.ini.template, 03-libinput.ini.template).
+        - Correct libinput key from 'enable-middle-button-emulation' to
+          'middle-button-emulation' to align with official Weston specifications.
+        - Update entry.sh to conditionally execute envsubst across template
+          fragments when WESTON_INI_PATH is unset.
+        - Expose an escape hatch (WESTON_INI_PATH) to bypass dynamic generation
+          and load a user-supplied static configuration file for advanced,
+          multi-instance use cases (e.g., complex multi-output matrices).
+        - Document environment variables, defaults, and advanced
+          Dockerfile override patterns in README.md.
+        - Install gettext-base to provide the envsubst binary required for
+        runtime
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Rahul Thakoor <rahul@balena.io>
+        signed-off-by: Rahul Thakoor <rahul@balena.io>
+      author: Rahul Thakoor
+      nested: []
+  version: 0.1.0
+  title: ""
+  date: 2026-05-27T12:30:52.733Z
+- commits:
     - subject: "remove unnecessary pid: host from docker-compose"
       hash: 5242f2c130f859c2973421eda3f04dc2a3321a4b
       body: ""
