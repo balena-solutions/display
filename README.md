@@ -101,6 +101,34 @@ SOCKET="$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY"
 while [ ! -e "$SOCKET" ]; do sleep 1; done
 exec your-app
 ```
+## Configuration
+
+You can configure Weston sections and keys using the following environment variables: 
+| Variable                        | Options                               | Default       | Description                                                                                                            |
+|---------------------------------|---------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------|
+| `XDG_RUNTIME_DIR`               | valid directory path                  | `/run/user/0` | Directory where the Wayland socket is created.                                                                         |
+| `SOCKET_NAME`                   | [String] (e.g., `wayland-0`, `wayland-1`) | `wayland-0`   | Name of the Wayland socket                                                                                             |
+| `WESTON_DEBUG`                  | true, false                           | `false`       | Enable debug mode                                                                                                      |
+| `WESTON_INI_PATH` |   Absolute path to a custom `weston.ini` file | - | When this variable is set and the file is present, Weston will be luanched directly using the provided file. Consequently any other `WESTON_INI_*` environment variables defined for the container will be ignored. |
+| `WESTON_INI_CORE_SHELL`           | `desktop`, `fullscreen`, `ivi`, `kiosk`       | `kiosk`         | Defines the shell plugin to load. kiosk confines the UI to a single full-screen surface, ideal for embedded use cases. |
+| `WESTON_INI_CORE_IDLE_TIME`       | [Integer] (seconds)                   |             `0` | Time in seconds before the compositor enters an inactive mode and blanks the screen. 0 disables the idle timeout.      |
+| `WESTON_INI_CORE_REQUIRE_INPUT`   | `true`, `false`                           |     `false`     | Dictates whether Weston requires an active input device to launch. false permits display-only deployments.             |
+| `WESTON_INI_SHELL_LOCKING`        | `true`, `false`                           |     `false`     | Enables or disables screen locking functionality within the shell context.                                             |
+| `WESTON_INI_SHELL_PANEL_POSITION` | `top`, `bottom`, `left`, `right`, `none`        | `none `         | Sets the location of the desktop panel. none disables the panel entirely, ensuring an unobstructed viewport.           |
+
+## Advanced Configuration
+
+If the configurations provided does not suit your use case such as complex output management—such as requiring complex output management, multiple independent displays, or custom launchers—you must provide a custom `weston.ini` via a Dockerfile override.  
+
+The following snippets demonstrate how to override the configuration by inheriting from the base image and copying a custom `weston.ini`. You must also configure `WESTON_INI_PATH` to the absolute path of your `weston.ini` file for it to take effect.
+
+**`./display/Dockerfile.template`**
+```dockerfile
+FROM bh.cr/balena_solutions/display-%%BALENA_ARCH%%
+
+# Inject your custom Weston configuration
+COPY weston.ini /etc/weston/weston.ini
+```
 
 ## Examples
 
@@ -158,21 +186,11 @@ GPU acceleration is enabled through:
 1. **DRM Backend** — Weston connects directly to the GPU via `/dev/dri`
 2. **Mesa Graphics Libraries** — Provides OpenGL/Vulkan drivers
 
-
-
 ### Docker Privileges
 The display container requires:
 - `privileged: true` — DRM master access
 - `/dev/dri` — GPU device access
 - `io.balena.features.dbus: '1'` — D-Bus access (for stopping Plymouth)
-
-## Environment Variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `XDG_RUNTIME_DIR` | `/run/user/0` | Directory where the Wayland socket is created |
-| `SOCKET_NAME` | `wayland-0` | Name of the Wayland socket |
-| `WESTON_DEBUG` | `false` | Enable debug mode and screenshooter support |
 
 ## Debugging
 
@@ -183,3 +201,4 @@ The display container requires:
 
 
 [block-ref-url]:https://docs.balena.io/learn/develop/blocks/#getting-started-with-blocks
+[weston-ini-ref-url]:https://manpages.debian.org/trixie/weston/weston.ini.5.en.html
