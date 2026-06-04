@@ -1,17 +1,17 @@
 #!/bin/bash
-# Defines fallback values for the Weston configuration templates.
+# Translates abstract public DISPLAY_* variables to internal WESTON_INI_* templates.
 
 # ==============================================================================
 # DEFAULT TEMPLATE VALUES
 # ==============================================================================
 
 # [core]
-export WESTON_INI_CORE_SHELL="${WESTON_INI_CORE_SHELL:-kiosk}"
-export WESTON_INI_CORE_IDLE_TIME="${WESTON_INI_CORE_IDLE_TIME:-0}"
-export WESTON_INI_CORE_REQUIRE_INPUT="${WESTON_INI_CORE_REQUIRE_INPUT:-false}"
+export WESTON_INI_CORE_SHELL="${DISPLAY_UX_MODE:-kiosk}"
+export WESTON_INI_CORE_IDLE_TIME="${DISPLAY_IDLE_TIMEOUT:-0}"
+export WESTON_INI_CORE_REQUIRE_INPUT="${DISPLAY_REQUIRE_INPUT:-false}"
 
 # [shell]
-export WESTON_INI_SHELL_LOCKING="${WESTON_INI_SHELL_LOCKING:-false}"
-export WESTON_INI_SHELL_PANEL_POSITION="${WESTON_INI_SHELL_PANEL_POSITION:-none}"
+export WESTON_INI_SHELL_LOCKING="${DISPLAY_ALLOW_LOCKING:-false}"
+export WESTON_INI_SHELL_PANEL_POSITION="${DISPLAY_PANEL_POSITION:-none}"
 
 # [libinput] is explicitly hardcoded in its template and requires no variables.

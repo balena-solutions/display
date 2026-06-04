@@ -109,12 +109,12 @@ You can configure Weston sections and keys using the following environment varia
 | `XDG_RUNTIME_DIR`               | valid directory path                  | `/run/user/0` | Directory where the Wayland socket is created.                                                                         |
 | `SOCKET_NAME`                   | [String] (e.g., `wayland-0`, `wayland-1`) | `wayland-0`   | Name of the Wayland socket                                                                                             |
 | `WESTON_DEBUG`                  | true, false                           | `false`       | Enable debug mode                                                                                                      |
-| `WESTON_INI_PATH` |   Absolute path to a custom `weston.ini` file | - | When this variable is set and the file is present, Weston will be luanched directly using the provided file. Consequently any other `WESTON_INI_*` environment variables defined for the container will be ignored. |
-| `WESTON_INI_CORE_SHELL`           | `desktop`, `fullscreen`, `ivi`, `kiosk`       | `kiosk`         | Defines the shell plugin to load. kiosk confines the UI to a single full-screen surface, ideal for embedded use cases. |
-| `WESTON_INI_CORE_IDLE_TIME`       | [Integer] (seconds)                   |             `0` | Time in seconds before the compositor enters an inactive mode and blanks the screen. 0 disables the idle timeout.      |
-| `WESTON_INI_CORE_REQUIRE_INPUT`   | `true`, `false`                           |     `false`     | Dictates whether Weston requires an active input device to launch. false permits display-only deployments.             |
-| `WESTON_INI_SHELL_LOCKING`        | `true`, `false`                           |     `false`     | Enables or disables screen locking functionality within the shell context.                                             |
-| `WESTON_INI_SHELL_PANEL_POSITION` | `top`, `bottom`, `left`, `right`, `none`        | `none `         | Sets the location of the desktop panel. none disables the panel entirely, ensuring an unobstructed viewport.           |
+| `WESTON_INI_PATH` |   Absolute path to a custom `weston.ini` file | - | When this variable is set and the file is present, Weston will be launched directly using the provided file. Consequently any other `DISPLAY_*` environment variables defined for the container will be ignored. |
+| `DISPLAY_UX_MODE`           | `desktop`, `kiosk`       | `kiosk`         | Sets the user interface mode. Use `kiosk` for a single full-screen application(ideal for embedded use cases), or `desktop` for a multi-window environment. |
+| `DISPLAY_IDLE_TIMEOUT`       | [Integer] (seconds)                   |             `0` | Time in seconds before the display enters an inactive mode and blanks the screen. 0 disables the idle timeout.  *Note: Only applicable when `DISPLAY_UX_MODE=desktop`.*  |
+| `DISPLAY_REQUIRE_INPUT`   | `true`, `false`                           |     `false`     | Dictates whether an active input device is required to launch. false permits display-only deployments.             |
+| `DISPLAY_ALLOW_LOCKING`        | `true`, `false`                           |     `false`     | Enables or disables screen locking functionality.                                             |
+| `DISPLAY_PANEL_POSITION` | `top`, `bottom`, `left`, `right`, `none`        | `none `         | Sets the location of the desktop panel. none disables the panel entirely, ensuring an unobstructed viewport.           |
 
 ## Advanced Configuration
 
