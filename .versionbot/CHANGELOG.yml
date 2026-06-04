@@ -1,4 +1,34 @@
 - commits:
+    - subject: abstract weston.ini configuration to display domain variables
+      hash: e09e98070c0add29317df291bc255c5eb760ae19
+      body: >
+        This decouples the block's public configuration interface from
+        Weston-specific
+
+        implementation details, ensuring fleet variables remain stable and
+        compositor-agnostic
+
+        even if the underlying display server changes in the future. Some values
+        are still Weston-specific,
+
+        but this is a step towards a more flexible and maintainable
+        configuration system.
+
+
+        We also restrict supported DISPLAY_UX_MODE values to 'kiosk' and
+        'desktop' (upstream 'fullscreen' shell is deprecated; 'ivi' is out of
+        scope)
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: Rahul Thakoor <rahul@balena.io>
+        signed-off-by: Rahul Thakoor <rahul@balena.io>
+      author: Rahul Thakoor
+      nested: []
+  version: 0.2.0
+  title: ""
+  date: 2026-06-04T15:10:37.593Z
+- commits:
     - subject: Implement dynamic configuration via fragment-based templating
       hash: 5db49088059f5fad02b17f223bf5d2974a9565e8
       body: >
