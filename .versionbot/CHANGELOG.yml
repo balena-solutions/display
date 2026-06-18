@@ -1,4 +1,35 @@
 - commits:
+    - subject: "Add output geometry config: rotation, resolution, scale"
+      hash: 75e2584fefa30ffc0f744ccb397398168b72b71a
+      body: >
+        New `DISPLAY_ROTATION`, `DISPLAY_RESOLUTION` and `DISPLAY_SCALE` env
+        vars
+
+        configure the Weston output via a new 04-output.ini.template fragment.
+
+
+        - Auto-detect the first connected DRM connector and apply the config to
+          it; skip the [output] section when no display is connected.
+        - `DISPLAY_ROTATION` is clockwise degrees (0/90/180/270). Weston's
+          transform describes panel orientation, not content, so the mapping is
+          inverted (90 -> rotate-270, 270 -> rotate-90) to rotate content
+          clockwise as documented.
+        - `DISPLAY_RESOLUTION` is `WIDTHxHEIGHT[@refresh]`; unset uses the
+        native
+          mode. `DISPLAY_SCALE` is an integer factor.
+        - Document the new vars in README; record multi-display as out of scope
+          in docs/todo-multi-display.md.
+      footer:
+        Change-type: minor
+        change-type: minor
+        Signed-off-by: rahul-thakoor <13220877+rahul-thakoor@users.noreply.github.com>
+        signed-off-by: rahul-thakoor <13220877+rahul-thakoor@users.noreply.github.com>
+      author: Rahul Thakoor
+      nested: []
+  version: 0.3.0
+  title: ""
+  date: 2026-06-18T11:26:29.323Z
+- commits:
     - subject: abstract weston.ini configuration to display domain variables
       hash: e09e98070c0add29317df291bc255c5eb760ae19
       body: >
