@@ -13,6 +13,40 @@ WESTON_DEBUG="${WESTON_DEBUG:-false}"
 source /etc/weston/weston-env-defaults.sh
 
 # ==============================================================================
+# DEFAULT OUTPUT DETECTION
+# ==============================================================================
+# Weston's [output] section keys on the connector name (e.g. HDMI-A-1, DSI-1),
+# which differs per platform/GPU. To keep the public DISPLAY_* geometry vars
+# generic, we auto-detect the connected connector(s) and apply the config to the
+# FIRST connected one. Multi-display targeting is intentionally out of scope for
+# now (see docs/todo-multi-display.md).
+detect_connected_outputs() {            # echoes Weston output names, one per line
+    for status in /sys/class/drm/card*-*/status; do
+        [ -e "$status" ] || continue
+        [ "$(cat "$status")" = "connected" ] || continue
+        conn=$(basename "$(dirname "$status")")   # e.g. card0-HDMI-A-1
+        name="${conn#card*-}"                       # -> HDMI-A-1 (Weston output name)
+        case "$name" in Writeback-*) continue ;; esac  # skip virtual connectors
+        echo "$name"
+    done
+}
+
+CONNECTED_OUTPUTS=$(detect_connected_outputs)
+if [ -n "$CONNECTED_OUTPUTS" ]; then
+    echo "Connected display outputs detected:"
+    echo "$CONNECTED_OUTPUTS" | sed 's/^/  - /'
+    export WESTON_INI_OUTPUT_NAME=$(echo "$CONNECTED_OUTPUTS" | head -n1)
+    echo "Applying display geometry (rotation/resolution/scale) to: $WESTON_INI_OUTPUT_NAME"
+    if [ "$(echo "$CONNECTED_OUTPUTS" | wc -l)" -gt 1 ]; then
+        echo "[NOTE] Multiple displays connected. Only '$WESTON_INI_OUTPUT_NAME' is configured;"
+        echo "       For custom multi-output layouts, provide your own weston.ini via WESTON_INI_PATH."
+    fi
+else
+    echo "[WARN] No connected display outputs detected; skipping [output] configuration."
+    export WESTON_INI_OUTPUT_NAME=""
+fi
+
+# ==============================================================================
 # STOP PLYMOUTH (Release DRM Master)
 # ==============================================================================
 # Plymouth holds the DRM lock on boot. We must tell it to quit so Weston can
@@ -88,6 +122,11 @@ else
     # We iterate explicitly to ensure a trailing newline separates each fragment,
     # preventing syntax errors if a template file lacks an EOF newline.
     for template in /etc/weston/templates/*.ini.template; do
+        # The [output] fragment requires a connector name; skip it when no display
+        # was detected (headless) so Weston doesn't reject an empty 'name='.
+        if [ "$(basename "$template")" = "04-output.ini.template" ] && [ -z "$WESTON_INI_OUTPUT_NAME" ]; then
+            continue
+        fi
         cat "$template"
         echo ""
     done | envsubst > "$CONFIG_FILE"

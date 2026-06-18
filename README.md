@@ -115,6 +115,48 @@ You can configure Weston sections and keys using the following environment varia
 | `DISPLAY_REQUIRE_INPUT`   | `true`, `false`                           |     `false`     | Dictates whether an active input device is required to launch. false permits display-only deployments.             |
 | `DISPLAY_ALLOW_LOCKING`        | `true`, `false`                           |     `false`     | Enables or disables screen locking functionality.                                             |
 | `DISPLAY_PANEL_POSITION` | `top`, `bottom`, `left`, `right`, `none`        | `none `         | Sets the location of the desktop panel. none disables the panel entirely, ensuring an unobstructed viewport.           |
+| `DISPLAY_ROTATION` | `0`, `90`, `180`, `270` | `0` | Rotates the displayed image **clockwise** by this many degrees (e.g. `90` turns the picture 90° clockwise; its top edge moves to the right). Applied to the first connected display (see [Display geometry & rotation](#display-geometry--rotation)). |
+| `DISPLAY_RESOLUTION` | `WIDTHxHEIGHT` or `WIDTHxHEIGHT@REFRESH` | display's native mode | Output resolution, e.g. `1920x1080` or `1920x1080@60` (refresh rate in Hz). Leave unset to use the display's native (preferred) mode. |
+| `DISPLAY_SCALE` | [Integer] ≥ 1 | `1` | Integer output scaling factor (e.g. `2` for HiDPI displays). |
+
+### Display geometry & rotation
+
+`DISPLAY_ROTATION`, `DISPLAY_RESOLUTION` and `DISPLAY_SCALE` configure the output and are applied to
+the **first connected display detected** (the block auto-detects DRM connectors, so you do not need
+to know the platform-specific connector name like `HDMI-A-1` or `DSI-1`). The detected connector
+names are logged on startup.
+
+Rotation rotates the **displayed content clockwise** by the given number of degrees — `DISPLAY_ROTATION=90`
+turns the picture 90° clockwise (the top edge moves to the right), the same way the rotation setting
+behaves on macOS/Windows and in the v2 block. It is expressed in degrees (not compositor-specific
+terms like `left`/`right`) so the interface stays independent of the underlying compositor. Touch
+input rotates automatically with the display — the compositor applies the matching transform to
+libinput touch devices, so there is no separate touch-calibration setting to configure.
+
+> When using `DISPLAY_ROTATION=90` or `270`, set `DISPLAY_RESOLUTION` to the panel's native
+> (pre-rotation) mode explicitly (e.g. `1920x1080`) rather than leaving it unset, as the
+> compositor positions the output using the post-rotation width.
+
+Example — a portrait kiosk on a 1080p panel rotated 90° clockwise:
+
+```yaml
+services:
+  display:
+    image: bh.cr/balenalabs/display-<arch>
+    privileged: true
+    volumes:
+      - display-socket:/run
+    labels:
+      io.balena.features.dbus: '1'
+    environment:
+      DISPLAY_ROTATION: 90
+      DISPLAY_RESOLUTION: 1920x1080
+```
+
+> **Multiple displays are not yet supported.** Only the first connected display is configured by
+> these variables; see [`docs/todo-multi-display.md`](docs/todo-multi-display.md) for the current
+> status. For custom multi-output layouts today, provide your own `weston.ini` via `WESTON_INI_PATH`
+> (see [Advanced Configuration](#advanced-configuration)).
 
 ## Advanced Configuration
 
