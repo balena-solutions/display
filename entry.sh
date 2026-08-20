@@ -4,10 +4,29 @@ set -e
 # ==============================================================================
 # ENVIRONMENT VARIABLES & DEFAULTS
 # ==============================================================================
-# Define the Runtime Directory
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/0}"
+# Optional unprivileged compositor user. When set (e.g. COMPOSITOR_USER=weston),
+# Weston is dropped to this user for the final exec — see the non-root deployment
+# in examples/least-privileged-nonroot-compositor. Default unset => Weston runs
+# as root (the historical behavior), unchanged.
+COMPOSITOR_USER="${COMPOSITOR_USER:-}"
+
+# Define the Runtime Directory. In non-root mode it defaults to /run/user/<uid>
+# of the compositor user; otherwise /run/user/0.
+if [ -n "$COMPOSITOR_USER" ]; then
+    COMPOSITOR_UID="$(id -u "$COMPOSITOR_USER")"
+    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$COMPOSITOR_UID}"
+else
+    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/0}"
+fi
 SOCKET_NAME="${SOCKET_NAME:-wayland-0}"
 WESTON_DEBUG="${WESTON_DEBUG:-false}"
+
+# Run libseat's embedded seatd as a NON-VT-bound seat by default. A container
+# has no VT (/dev/tty0), and a VT-bound seat can never mark the client "active",
+# which makes seatd refuse DRM device access (EPERM / "no drm device found").
+# Non-VT-bound is the right mode for a single-compositor kiosk. Set
+# SEATD_VTBOUND=1 only if you have a real VT and need VT switching.
+export SEATD_VTBOUND="${SEATD_VTBOUND:-0}"
 
 # Load Weston configuration defaults from weston-env-defaults.sh
 source /etc/weston/weston-env-defaults.sh
@@ -17,7 +36,9 @@ source /etc/weston/weston-env-defaults.sh
 # ==============================================================================
 # Plymouth holds the DRM lock on boot. We must tell it to quit so Weston can
 # take control of the graphics card.
-if [ -e /host/run/dbus/system_bus_socket ]; then
+if [ "$LIBSEAT_BACKEND" = "seatd" ]; then
+    echo "INFO: LIBSEAT_BACKEND=seatd; the seatd sidecar owns Plymouth handling. Skipping."
+elif [ -e /host/run/dbus/system_bus_socket ]; then
     echo "Stopping Plymouth to release DRM lock..."
     # We send the Quit command to Plymouth. 
     # '|| true' ensures the script continues even if Plymouth is already stopped.
@@ -42,31 +63,63 @@ cleanup () {
 cleanup
 
 # ==============================================================================
-# UDEV 
+# UDEV (optional — dynamic hotplug detection)
 # ==============================================================================
-setup_devtmpfs() {
-	newdev=/tmp/dev
-	mkdir -p "$newdev"
-	mount -t devtmpfs none "$newdev"
-	mount --move /dev/console "$newdev/console"
-	mount --move /dev/mqueue "$newdev/mqueue"
-	mount --move /dev/pts "$newdev/pts"
-	mount --move /dev/shm "$newdev/shm"
-	umount /dev
-	mount --move "$newdev" /dev
-	ln -sf /dev/pts/ptmx /dev/ptmx
-}
-setup_devtmpfs
+# Off by default: devices bind-mounted via `devices:` (e.g. /dev/dri, /dev/input)
+# are already present at container start and need no udev. Set UDEV=true only
+# if you need to detect devices that are plugged in *after* the container
+# starts (e.g. a hot-swappable USB touchscreen, mouse, or keyboard) — this
+# requires the container to be run with extra capabilities (CAP_SYS_ADMIN,
+# CAP_MKNOD, CAP_DAC_OVERRIDE) or privileged:true. See examples/least-privileged
+# and examples/dynamic-hotplug.
+UDEV=$(echo "${UDEV:-off}" | tr '[:upper:]' '[:lower:]')
+case "$UDEV" in
+	1|true) UDEV=on ;;
+esac
 
-unshare --net /lib/systemd/systemd-udevd --daemon
-udevadm control --reload-rules
-udevadm trigger 
-udevadm settle
+if [ "$UDEV" == "on" ]; then
+	setup_devtmpfs() {
+		newdev=/tmp/dev
+		mkdir -p "$newdev"
+		mount -t devtmpfs none "$newdev"
+		mount --move /dev/console "$newdev/console"
+		mount --move /dev/mqueue "$newdev/mqueue"
+		mount --move /dev/pts "$newdev/pts"
+		mount --move /dev/shm "$newdev/shm"
+		umount /dev
+		mount --move "$newdev" /dev
+		ln -sf /dev/pts/ptmx /dev/ptmx
+	}
+	setup_devtmpfs
+
+	unshare --net /lib/systemd/systemd-udevd --daemon
+	udevadm control --reload-rules
+	udevadm trigger
+	udevadm settle
+else
+	echo "INFO: UDEV is disabled (default). Devices must be bind-mounted via 'devices:'. Set UDEV=true to enable dynamic hotplug detection."
+fi
 
 # Set up the directory structure and permissions
 echo "Setting up XDG_RUNTIME_DIR at $XDG_RUNTIME_DIR..."
 mkdir -p "$XDG_RUNTIME_DIR"
 chmod 0700 "$XDG_RUNTIME_DIR"
+
+# ==============================================================================
+# WAIT FOR EXTERNAL SEATD (non-root deployment)
+# ==============================================================================
+# When using an external seatd broker (LIBSEAT_BACKEND=seatd), the seatd sidecar
+# opens the devices and exposes /run/seatd.sock on the shared volume. Wait for it
+# before launching Weston so libseat's seatd backend can connect.
+if [ "$LIBSEAT_BACKEND" = "seatd" ]; then
+    SEATD_SOCK="${SEATD_SOCK:-/run/seatd.sock}"
+    echo "Waiting for seatd socket at $SEATD_SOCK..."
+    for _ in $(seq 1 30); do
+        [ -S "$SEATD_SOCK" ] && break
+        sleep 1
+    done
+    [ -S "$SEATD_SOCK" ] || echo "[WARN] seatd socket not found at $SEATD_SOCK after timeout; Weston will likely fail to start."
+fi
 
 # ==============================================================================
 # weson configuration
@@ -105,6 +158,34 @@ if [ "$WESTON_DEBUG" == "true" ]; then
 
     echo "Exporting Weston version to shared volume..."
     weston --version > "$XDG_RUNTIME_DIR/weston_version.txt" 2>&1
+fi
+
+# ------------------------------------------------------------------------------
+# Non-root launch: drop privileges to COMPOSITOR_USER for the compositor process.
+# ------------------------------------------------------------------------------
+if [ -n "$COMPOSITOR_USER" ]; then
+    # The GL renderer opens the GPU render node directly (not brokered by seatd),
+    # so the unprivileged user needs access to it. The render node's group varies
+    # by host, so detect its GID at runtime and add the user to it.
+    if [ -e /dev/dri/renderD128 ]; then
+        RENDER_GID="$(stat -c %g /dev/dri/renderD128)"
+        if ! getent group "$RENDER_GID" >/dev/null 2>&1; then
+            groupadd -g "$RENDER_GID" render_host
+        fi
+        usermod -aG "$RENDER_GID" "$COMPOSITOR_USER"
+    fi
+
+    # The runtime dir and generated config must be owned by the target user.
+    chown -R "$COMPOSITOR_USER" "$XDG_RUNTIME_DIR"
+
+    COMPOSITOR_GID="$(id -g "$COMPOSITOR_USER")"
+    echo "--- LAUNCHING WESTON as $COMPOSITOR_USER (uid $COMPOSITOR_UID) ---"
+    echo "Command: exec setpriv --reuid $COMPOSITOR_UID --regid $COMPOSITOR_GID --init-groups weston $ARGS"
+    exec setpriv --reuid "$COMPOSITOR_UID" --regid "$COMPOSITOR_GID" --init-groups \
+        env XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" \
+            LIBSEAT_BACKEND="$LIBSEAT_BACKEND" \
+            SEATD_VTBOUND="$SEATD_VTBOUND" \
+            weston $ARGS
 fi
 
 echo "--- LAUNCHING WESTON ---"

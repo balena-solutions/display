@@ -1,0 +1,39 @@
+version: '2.1'
+
+# Dynamic hotplug deployment: opts into udev (UDEV=true) so input devices
+# plugged in *after* the container starts (touchscreen, mouse, keyboard) are
+# detected at runtime. This needs the specific capabilities udev requires,
+# but still avoids full privileged:true.
+#
+# If your devices are always connected before the container starts, use
+# ../least-privileged instead - it needs no added capabilities at all.
+
+services:
+  display:
+    build: ./display
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN     # mount devtmpfs + create the udevd network namespace
+      - MKNOD         # udev creates device nodes as new devices are detected
+      - DAC_OVERRIDE  # udev sets ownership/permissions on newly created device nodes
+    restart: always
+    volumes:
+      - display-socket:/run
+    environment:
+      - UDEV=true
+    labels:
+      io.balena.features.dbus: '1'
+
+  glxgears:
+    build: ./
+    restart: always
+    volumes:
+      - display-socket:/run
+    depends_on:
+      - display
+    devices:
+      - /dev/dri:/dev/dri
+
+volumes:
+  display-socket:

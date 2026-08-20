@@ -13,6 +13,14 @@ RUN apt-get update -qq && \
     weston=14.* \
     && rm -rf /var/lib/apt/lists/*
 
+# Create an unprivileged compositor user for the non-root deployment path
+# (see examples/least-privileged-nonroot-compositor). The default runtime user
+# is still root (no USER directive); entry.sh only drops to this user when
+# COMPOSITOR_USER is set. GID 915 for 'seat' must match the seatd sidecar so
+# the /run/seatd.sock group aligns numerically across containers.
+RUN groupadd -g 915 seat && \
+    useradd -u 1000 -m -s /usr/sbin/nologin -G seat weston
+
 # Setup Weston
 RUN mkdir -p /etc/weston/templates
 COPY weston-templates/ /etc/weston/templates/

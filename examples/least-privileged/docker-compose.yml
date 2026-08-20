@@ -1,0 +1,39 @@
+version: '2.1'
+
+# Static, least-privilege deployment: /dev/dri and /dev/input are bind-mounted
+# directly (like any other device), so the display block never needs udev,
+# extra capabilities, host networking, or privileged:true.
+#
+# This works when your GPU and input devices (touchscreen, mouse, keyboard)
+# are already connected at container start and don't rely on udev-managed
+# rules (permission fixups, `by-id` symlinks, calibration). If you need to
+# detect devices that are plugged in *after* the container starts, see
+# ../dynamic-hotplug instead.
+
+services:
+  display:
+    build: ./display
+    restart: always
+    # No added capabilities: the block defaults to SEATD_VTBOUND=0 (non-VT-bound
+    # seatd), so Weston becomes DRM master on /dev/dri/card0 without CAP_SYS_ADMIN
+    # once Plymouth releases the lock.
+    volumes:
+      - display-socket:/run
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/input:/dev/input
+    labels:
+      io.balena.features.dbus: '1'
+
+  glxgears:
+    build: ./
+    restart: always
+    volumes:
+      - display-socket:/run
+    depends_on:
+      - display
+    devices:
+      - /dev/dri:/dev/dri
+
+volumes:
+  display-socket:

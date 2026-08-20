@@ -34,6 +34,8 @@ services:
     network_mode: host
     volumes:
       - display-socket:/run
+    environment:
+      - UDEV=true
     labels:
       io.balena.features.dbus: '1'
 
@@ -75,6 +77,8 @@ services:
     network_mode: host
     volumes:
       - display-socket:/run
+    environment:
+      - UDEV=true
     labels:
       io.balena.features.dbus: '1'
 
@@ -115,6 +119,7 @@ You can configure Weston sections and keys using the following environment varia
 | `DISPLAY_REQUIRE_INPUT`   | `true`, `false`                           |     `false`     | Dictates whether an active input device is required to launch. false permits display-only deployments.             |
 | `DISPLAY_ALLOW_LOCKING`        | `true`, `false`                           |     `false`     | Enables or disables screen locking functionality.                                             |
 | `DISPLAY_PANEL_POSITION` | `top`, `bottom`, `left`, `right`, `none`        | `none `         | Sets the location of the desktop panel. none disables the panel entirely, ensuring an unobstructed viewport.           |
+| `UDEV`                       | `true`, `false`                           |     `false`     | Enables udev inside the container to dynamically detect devices (e.g. touchscreens, mice, keyboards) plugged in after startup. Requires the container to run with `privileged: true` or the capabilities listed under [Least-Privilege Deployment](#least-privilege-deployment). Devices already connected at boot can instead be bind-mounted directly and don't need this. |
 
 ## Advanced Configuration
 
@@ -137,6 +142,12 @@ Renders a hardware-accelerated OpenGL ES spinning gears demo using `eglgears_way
 
 ### Touchscreen Demo (`examples/touchscreen-demo`)
 Runs the GTK4 demo suite over Wayland, demonstrating interactive touch input. The specific demo can be configured via the `DEMO` environment variable (default: `drawingarea`).
+
+### Least Privilege (`examples/least-privileged`)
+The glxgears demo deployed without `privileged: true`, host networking, or udev — `/dev/dri` and `/dev/input` are bind-mounted directly instead. See [Least-Privilege Deployment](#least-privilege-deployment) below.
+
+### Dynamic Hotplug (`examples/dynamic-hotplug`)
+The glxgears demo with `UDEV=true` enabled, for deployments that need to detect input devices plugged in after the container starts, using a scoped `cap_add` instead of full `privileged: true`.
 
 ## Architecture
 
@@ -187,10 +198,61 @@ GPU acceleration is enabled through:
 2. **Mesa Graphics Libraries** — Provides OpenGL/Vulkan drivers
 
 ### Docker Privileges
-The display container requires:
-- `privileged: true` — DRM master access
+The display container, as shown in the examples above, requires:
+- `privileged: true` — DRM master access and dynamic device detection via udev
 - `/dev/dri` — GPU device access
 - `io.balena.features.dbus: '1'` — D-Bus access (for stopping Plymouth)
+
+This is the simplest setup, but grants far more than Weston actually needs. See [Least-Privilege Deployment](#least-privilege-deployment) below for a scoped-down alternative.
+
+## Least-Privilege Deployment
+
+`privileged: true` grants every Linux capability and access to every host device — Weston only needs GPU (and optionally input) device access, and, if you want dynamic hotplug detection, a small set of capabilities for udev. Acquiring DRM master doesn't itself require any capability: the kernel grants it implicitly to the first process that opens the primary DRM node once Plymouth releases it (which is what the `io.balena.features.dbus` D-Bus call does).
+
+There are two scoped-down patterns, depending on whether you need to detect devices plugged in *after* the container starts:
+
+**Static devices (no udev, no added capabilities)** — use this when your GPU and input devices (touchscreen, mouse, keyboard) are already connected at boot. Bind-mount them directly, the same way `/dev/dri` is already bind-mounted into client containers:
+
+```yaml
+services:
+  display:
+    build: ./display
+    restart: always
+    volumes:
+      - display-socket:/run
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/input:/dev/input
+    labels:
+      io.balena.features.dbus: '1'
+```
+
+No `privileged`, `cap_add`, or `network_mode: host` needed. Full example: [`examples/least-privileged`](examples/least-privileged).
+
+**Dynamic hotplug (opt into udev)** — use this when you need to detect devices plugged in after the container starts (e.g. a hot-swappable USB touchscreen, mouse, or keyboard). Set `UDEV=true` and grant only the capabilities udev needs, instead of full `privileged: true`:
+
+```yaml
+services:
+  display:
+    build: ./display
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYS_ADMIN     # mount devtmpfs + create the udevd network namespace
+      - MKNOD         # udev creates device nodes as new devices are detected
+      - DAC_OVERRIDE  # udev sets ownership/permissions on newly created device nodes
+    restart: always
+    volumes:
+      - display-socket:/run
+    environment:
+      - UDEV=true
+    labels:
+      io.balena.features.dbus: '1'
+```
+
+Full example: [`examples/dynamic-hotplug`](examples/dynamic-hotplug).
+
+In both cases `network_mode: host` is unnecessary — the Plymouth D-Bus call uses the host socket bind-mounted in by the `io.balena.features.dbus` label, not host networking.
 
 ## Debugging
 

@@ -1,0 +1,58 @@
+version: '2.1'
+
+# Non-root compositor deployment.
+#
+# Weston cannot open GPU/input devices itself as a non-root user (libseat's
+# builtin backend requires root). Instead a minimal `seatd` broker runs as root
+# in its own isolated, non-privileged container: it opens the devices and hands
+# file descriptors to Weston over /run/seatd.sock on the shared /run volume.
+# Weston then runs as the unprivileged `weston` user (uid 1000).
+#
+# Privilege posture: no privileged, no added capabilities, no host networking.
+# Only the `seatd` sidecar runs a root process; the compositor is unprivileged.
+
+services:
+  # Root broker: opens devices, stops Plymouth, exposes /run/seatd.sock.
+  seatd:
+    build: ./seatd
+    restart: always
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/input:/dev/input
+    volumes:
+      - display-socket:/run
+    labels:
+      io.balena.features.dbus: '1'
+
+  # Compositor: runs Weston as the unprivileged `weston` user via the seatd
+  # broker. Needs /dev/dri only for the GL render node (input is brokered by
+  # seatd). No dbus, no capabilities.
+  display:
+    build: ./display
+    restart: always
+    depends_on:
+      - seatd
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - display-socket:/run
+    environment:
+      - COMPOSITOR_USER=weston
+      - LIBSEAT_BACKEND=seatd
+      - XDG_RUNTIME_DIR=/run/user/1000
+
+  glxgears:
+    build: ./
+    restart: always
+    depends_on:
+      - display
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - display-socket:/run
+    environment:
+      - XDG_RUNTIME_DIR=/run/user/1000
+      - WAYLAND_DISPLAY=wayland-0
+
+volumes:
+  display-socket:

@@ -11,6 +11,7 @@ services:
       - weston-socket:/run
     environment:
       - WESTON_DEBUG=true
+      - UDEV=true
     devices:
       - /dev/input:/dev/input
       - /dev/uinput:/dev/uinput
